@@ -3,12 +3,12 @@
   "id": "inventory_shuffle",
   "version": "${version}",
   "name": "Inventory Shuffle",
-  "description": "Shuffle players' main inventories every few seconds.",
+  "description": "Shuffle players' main inventories every few seconds. Supports offhand slot shuffle.",
   "authors": [
-    "YourName"
+    "k0zino"
   ],
   "license": "MIT",
-  "environment": "server",
+  "environment": "*",
   "entrypoints": {
     "main": [
       "com.example.inventoryshuffle.InventoryShuffleMod"

@@ -18,15 +18,14 @@ import java.util.List;
 
 public class InventoryShuffleMod implements ModInitializer {
     private static final int MAIN_INVENTORY_SIZE = 36; // 0-8 hotbar, 9-35 backpack
+    private static final int OFFHAND_SLOT = 40;
     private static final int DEFAULT_INTERVAL_TICKS = 20 * 10;
-
-    // true = empty slots also participate in random shuffle
-    // false = only shuffle non-empty items, empty slots stay in place
     private static final boolean SHUFFLE_EMPTY_SLOTS = true;
 
     private static boolean enabled = false;
     private static int intervalTicks = DEFAULT_INTERVAL_TICKS;
     private static int tickCounter = 0;
+    private static boolean shuffleOffhand = false;
 
     @Override
     public void onInitialize() {
@@ -88,8 +87,11 @@ public class InventoryShuffleMod implements ModInitializer {
                             .executes(context -> {
                                 int seconds = intervalTicks / 20;
                                 String status = enabled ? "开启" : "关闭";
+                                String offhandStatus = shuffleOffhand ? "开启" : "关闭";
                                 context.getSource().sendSuccess(
-                                        () -> Component.literal("Inventory Shuffle 当前状态：" + status + "，间隔：" + seconds + " 秒。"),
+                                        () -> Component.literal("Inventory Shuffle 当前状态：" + status
+                                                + "，间隔：" + seconds + " 秒"
+                                                + "，副手打乱：" + offhandStatus + "。"),
                                         false
                                 );
                                 return 1;
@@ -111,6 +113,29 @@ public class InventoryShuffleMod implements ModInitializer {
                                     })
                             )
                     )
+
+                    .then(Commands.literal("offhand")
+                            .then(Commands.literal("on")
+                                    .executes(context -> {
+                                        shuffleOffhand = true;
+                                        context.getSource().sendSuccess(
+                                                () -> Component.literal("副手物品已加入打乱范围。"),
+                                                true
+                                        );
+                                        return 1;
+                                    })
+                            )
+                            .then(Commands.literal("off")
+                                    .executes(context -> {
+                                        shuffleOffhand = false;
+                                        context.getSource().sendSuccess(
+                                                () -> Component.literal("副手物品已移出打乱范围。"),
+                                                true
+                                        );
+                                        return 1;
+                                    })
+                            )
+                    )
             );
         });
     }
@@ -125,22 +150,27 @@ public class InventoryShuffleMod implements ModInitializer {
         }
 
         inventory.setChanged();
-
-        // Sync to client so the player's inventory screen updates immediately
         player.inventoryMenu.broadcastChanges();
     }
 
     private static void shuffleAllSlots(Inventory inventory) {
-        List<ItemStack> stacks = new ArrayList<>(MAIN_INVENTORY_SIZE);
+        int count = shuffleOffhand ? MAIN_INVENTORY_SIZE + 1 : MAIN_INVENTORY_SIZE;
+        List<ItemStack> stacks = new ArrayList<>(count);
 
         for (int slot = 0; slot < MAIN_INVENTORY_SIZE; slot++) {
             stacks.add(inventory.getItem(slot));
+        }
+        if (shuffleOffhand) {
+            stacks.add(inventory.getItem(OFFHAND_SLOT));
         }
 
         Collections.shuffle(stacks);
 
         for (int slot = 0; slot < MAIN_INVENTORY_SIZE; slot++) {
             inventory.setItem(slot, stacks.get(slot));
+        }
+        if (shuffleOffhand) {
+            inventory.setItem(OFFHAND_SLOT, stacks.get(MAIN_INVENTORY_SIZE));
         }
     }
 
@@ -154,6 +184,14 @@ public class InventoryShuffleMod implements ModInitializer {
             if (!stack.isEmpty()) {
                 occupiedSlots.add(slot);
                 stacks.add(stack);
+            }
+        }
+
+        if (shuffleOffhand) {
+            ItemStack offhandStack = inventory.getItem(OFFHAND_SLOT);
+            if (!offhandStack.isEmpty()) {
+                occupiedSlots.add(OFFHAND_SLOT);
+                stacks.add(offhandStack);
             }
         }
 
