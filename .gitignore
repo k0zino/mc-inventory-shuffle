@@ -1,0 +1,6 @@
+build/
+.gradle/
+*.tar.gz
+*.zip
+run/
+logs/
